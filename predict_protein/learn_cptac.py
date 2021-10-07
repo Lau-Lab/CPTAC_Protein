@@ -16,6 +16,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.ensemble import RandomForestRegressor, VotingRegressor
 from sklearn.linear_model import LinearRegression, ElasticNet, LassoCV, Lasso, ElasticNetCV
+from . import get_proteins
+from .get_proteins import GetProtein, GetComplex
 
 
 class LearnCPTAC(object):
@@ -25,7 +27,6 @@ class LearnCPTAC(object):
 
     def __init__(self, cptac_df):
 
-        from get_proteins import GetProtein, GetComplex
 
         self.df = cptac_df
 
@@ -40,8 +41,8 @@ class LearnCPTAC(object):
         self.tx_to_include = "self"
         self.train_method = "simple"
 
-        self.stringdb = GetProtein()
-        self.corumdb = GetComplex()
+        # self.stringdb = GetProtein() # Disabled for now, need to figure out import path to get_proteins
+        # self.corumdb = GetComplex()
 
         pass
 
