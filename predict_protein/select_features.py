@@ -4,7 +4,7 @@
 The String DB file was modified by an R script  turn the Ensembl peptide ID into gene name."""
 
 import pandas as pd
-
+import os
 
 class GetProtein(object):
     """
@@ -12,8 +12,16 @@ class GetProtein(object):
     """
 
     def __init__(self):
-        self.df = pd.read_csv('data/string/tidy_stringdb_homosapiens_250.txt',
-                              sep='\t')
+
+        try:
+            import_path = '.'
+            self.df = pd.read_csv(os.path.join(import_path, 'data/string/tidy_stringdb_homosapiens_250.txt'),
+                                  sep='\t')
+        except FileNotFoundError:
+            import_path = '..'
+            self.df = pd.read_csv(os.path.join(import_path, 'data/string/tidy_stringdb_homosapiens_250.txt'),
+                                 sep='\t')
+
         self.df = self.df.sort_values('combined_score')
 
         pass
@@ -37,7 +45,11 @@ class GetProtein(object):
 
         interactors = interactors.sort_values('combined_score', ascending=False).p2
 
-        return [bait] + list(interactors)[:max_proteins]
+        # 2021-11-13 We need to remove redundant interactors.
+        interactors = list(set(interactors[:max_proteins]))
+
+        # Always return self
+        return [bait] + interactors
 
 
 class GetComplex(object):
@@ -47,7 +59,16 @@ class GetComplex(object):
     """
 
     def __init__(self):
-        self.corum = pd.read_csv('data/corum/tidy_corum_homosapiens.txt', sep='\t')
+
+        try:
+            import_path = '.'
+            self.corum = pd.read_csv(os.path.join(import_path, 'data', 'corum', 'tidy_corum_homosapiens.txt'),
+                                  sep='\t')
+        except FileNotFoundError:
+            import_path = '..'
+            self.corum = pd.read_csv(os.path.join(import_path, 'data', 'corum', 'tidy_corum_homosapiens.txt'),
+                                 sep='\t')
+
         pass
 
     def find_cosubunits(self,
