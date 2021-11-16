@@ -15,7 +15,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.ensemble import RandomForestRegressor, VotingRegressor
+from sklearn.ensemble import RandomForestRegressor, VotingRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression, ElasticNetCV
 
 from . import select_features, params
@@ -61,7 +61,7 @@ class LearnCPTAC(object):
     def train_method(self, value):
         """
         Set train method
-        :param value:   linreg, elastic, forest, or voting
+        :param value:   linreg, elastic, forest, boosting, or voting
         :return:
         """
 
@@ -82,13 +82,14 @@ class LearnCPTAC(object):
 
     def learn_all_proteins(
             self,
+            n_threads=1,
             # tx_to_include=self._features,
             # train_method=self._method,
     ):
         """
         Wrapper for learning one protein
 
-
+        :param n_threads:     int: number of threads
         :return:
         """
 
@@ -101,19 +102,22 @@ class LearnCPTAC(object):
                                               desc=f'Running {self._method} model with {self._features} transcripts')):
             tqdm.tqdm.write(f'Doing {i}: {protein}')
 
-            res = self.learn_one_protein(protein)
+            res = self.learn_one_protein(protein, n_threads=n_threads)
 
             if res:
                 learning_results.append(res)
-                tqdm.tqdm.write(f'corr: {res[1].corr_test.values}, r2: {res[1].r2_test.values}')
+                corr = res['metrics'].corr_test.values
+                r2 = res['metrics'].r2_test.values
+                tqdm.tqdm.write(f'corr: {corr}, r2: {r2}')
 
         return learning_results
 
     def get_train_test(self,
-                       protein_to_do):
+                       protein_to_do,
+                       ):
         """
         get the train-test data frames for a particular protein
-        :param protein_to_do:
+        :param protein_to_do:       str: protein
         :return:  x_train, x_test, y_train, y_test
         """
 
@@ -155,19 +159,19 @@ class LearnCPTAC(object):
         #  observations for training.
         #  Currently I have implemented a temporary solution to impute and remove near zero var columns
 
-        # create transcript dataframe with the approrpriate features
+        # create transcript dataframe with the appropriate features
         x_df = self.df[[tx + '_transcriptomics' for tx in proteins_to_include]]
 
         # simple impute for missing values
+        # TODO: use knn for better performance.
         x_impute = SimpleImputer(missing_values=np.nan, strategy='median').fit_transform(x_df)
         x_impute_df = pd.DataFrame(x_impute, columns=x_df.columns, index=x_df.index)
 
-        # remove zero var columns
-
+        # remove low variance columns
         try:
             vt = VarianceThreshold().fit(x_impute_df)
 
-        # catch instances where 0 columhs have any variance
+        # catch instances where no column has any variance
         except ValueError:
             tqdm.tqdm.write('No feature with non-zero variance. Skipping protein.')
             return None
@@ -179,74 +183,92 @@ class LearnCPTAC(object):
             tqdm.tqdm.write('Not enough features. Skipping protein.')
             return None
 
-        # Join X and Y
+        # Join x and y data frames
         xy_df = x_impute_var_df.join(y_df, how='inner').copy().dropna()
 
-        # Do train-test split
+        # perform train-test split
         x = xy_df.iloc[:, :-1]  # .values
         y = xy_df.iloc[:, -1]  # .values
 
         x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=2)
 
-        # PCA the train and test
+        # perform pca on the train and test
         # from sklearn.decomposition import PCA
         # pca = PCA(n_components=15)
-        # X_train_pca = pca.fit_transform(X_train)
-        # X_test_pca = pca.transform(X_test)
-        # End
+        # x_train_pca = pca.fit_transform(x_train)
+        # x_test_pca = pca.transform(x_test)
 
         return x_train, x_test, y_train, y_test
 
     def learn_one_protein(
             self,
             protein_to_do,
+            n_threads: int = 1,
     ):
         """
+        train model for one protein of interest
 
         :param protein_to_do:
-        :return:
+        :param n_threads:       int: threads
+        :return: dict of models and metrics
         """
-        # return [X_train_out, X_test_out, comb_df]
 
-        x_train, x_test, y_train, y_test = self.get_train_test(protein_to_do=protein_to_do)
+        try:
+            x_train, x_test, y_train, y_test = self.get_train_test(protein_to_do=protein_to_do)
+
+        # if the get_train_test method returns none, return empty result
+        except TypeError:
+            return None
 
         if self._method == 'linreg':
-            vreg = LinearRegression(n_jobs=-1)
+            vreg = LinearRegression(n_jobs=n_threads)
 
         elif self._method == 'voting':
             # Train model
             elastic = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.7, 0.9, 0.95, 0.99, 1],
                                    cv=5,
                                    fit_intercept=False,
-                                   n_jobs=-1,
+                                   n_jobs=n_threads,
                                    tol=1e-3,
-                                   max_iter=2500,
+                                   max_iter=2000,
+                                   random_state=2,
                                    )
 
             # Shallow Forest was 100 estimators 5 depth. Deep is 1000 estimators 10 depth.
             forest = RandomForestRegressor(n_estimators=1000,
                                            criterion='squared_error',
                                            max_depth=10,
-                                           random_state=1,
-                                           n_jobs=-1)
+                                           random_state=2,
+                                           n_jobs=n_threads)
 
             vreg = VotingRegressor(estimators=[('en', elastic), ('rf', forest), ])
 
         elif self._method == 'forest':
             vreg = RandomForestRegressor(n_estimators=100,
-                                         criterion='squared_error',
+                                         criterion='absolute_error',
                                          max_depth=5,
-                                         random_state=1,
-                                         n_jobs=-1)
+                                         random_state=2,
+                                         n_jobs=n_threads)
 
         elif self._method == 'elastic':
-            vreg = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.7, 0.9, 0.95, 0.99, 1],
+            vreg = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.9, 0.95],
                                 cv=5,
                                 fit_intercept=False,
-                                n_jobs=-1,
+                                n_jobs=n_threads,
                                 tol=1e-3,
-                                max_iter=2500,
+                                max_iter=2000,
+                                random_state=2,
                                 )
+
+        elif self._method == 'boosting':
+            vreg = GradientBoostingRegressor(n_estimators=200,
+                                             max_depth=4,
+                                             subsample=0.8,
+                                             min_samples_split=5,
+                                             learning_rate=0.1,
+                                             random_state=2,
+                                             loss="huber", )
+
         else:
             raise Exception('Invalid method')
 
@@ -329,7 +351,7 @@ class LearnCPTAC(object):
 
                                   index=[protein_to_do])
 
-        return [vreg, metrics_df]
+        return {'model': vreg, 'metrics': metrics_df}
 
 
 

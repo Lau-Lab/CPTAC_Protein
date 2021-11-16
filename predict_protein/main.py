@@ -26,12 +26,15 @@ def predict_protein(args):
     #                                                  train_method="elastic")
 
     #%%
-    tm.included_features=args.features
-    tm.train_method=args.method
-    pred = tm.learn_all_proteins()
-    pickle.dump(pred, open(args.out, 'wb'))
+    tm.included_features = args.features
+    tm.train_method = args.method
+    pred = tm.learn_all_proteins(n_threads=args.threads)
+
+    with open(args.out, 'wb') as f:
+        pickle.dump(pred, f)
 
     return sys.exit(os.EX_OK)
+
 
 def main():
     """
@@ -61,9 +64,14 @@ def main():
                         default='single',
                         )
 
+    parser.add_argument('-t', '--threads',
+                        help='number of threads for concurrency [default: 1]',
+                        type=int,
+                        default=1)
+
     parser.add_argument('-m', '--method',
                         type=str,
-                        choices=['elastic', 'voting', 'forest', 'linreg'],
+                        choices=['elastic', 'voting', 'forest', 'linreg', 'boosting'],
                         help='model to use for fitting',
                         default='linreg',)
 
