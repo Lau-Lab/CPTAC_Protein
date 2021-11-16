@@ -225,7 +225,7 @@ class LearnCPTAC(object):
 
         elif self._method == 'voting':
             # Train model
-            elastic = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.7, 0.9, 0.95, 0.99, 1],
+            elastic = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.9, 0.95],
                                    cv=5,
                                    fit_intercept=False,
                                    n_jobs=n_threads,
