@@ -1,0 +1,292 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Nov 16 13:13:38 2021
+
+@author: himangisrivastava
+"""
+
+
+from numpy import mean
+from numpy import std
+from numpy import absolute
+from pandas import read_csv
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import RepeatedKFold
+from sklearn.linear_model import Lasso
+import random
+import scipy
+from scipy.io import arff
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+# import scikitplot as skplt
+import sklearn
+from sklearn import preprocessing
+from sklearn import datasets 
+from sklearn.impute import SimpleImputer
+
+from sklearn.svm import SVR
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import DotProduct,WhiteKernel,RBF,Matern,RationalQuadratic,ExpSineSquared,ConstantKernel,PairwiseKernel
+from sklearn.linear_model import LinearRegression
+from sklearn.neural_network import MLPRegressor
+
+from sklearn.metrics import mean_squared_error, r2_score
+
+
+
+import pandas as pd
+from matplotlib import pyplot as plt
+import seaborn as sns
+import re
+import tqdm
+import numpy as np
+import os
+import datetime
+from multiprocessing import Pool, cpu_count
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestRegressor, VotingRegressor
+from sklearn.linear_model import LinearRegression, ElasticNet, LassoCV, Lasso, ElasticNetCV
+
+from sklearn.linear_model import Lasso
+
+import re
+
+import numpy as np
+import cptac
+import pandas as pd
+from predict_protein import get_proteins, learn_cptac
+from sklearn.preprocessing import StandardScaler, RobustScaler
+
+
+cptac.download(dataset="ovarian")
+cptac.download(dataset="brca")
+
+
+ov = cptac.Ovarian()
+br = cptac.Brca()
+
+ov_rna = ov.get_transcriptomics()
+ov_pro = ov.get_proteomics()
+b = ov.join_omics_to_omics('transcriptomics', 'proteomics')
+b.columns = b.columns.droplevel(1)
+
+
+br_rna = br.get_transcriptomics()
+br_pro = br.get_proteomics()
+d = br.join_omics_to_omics('transcriptomics', 'proteomics')
+d.columns = d.columns.droplevel(1)
+
+
+
+b_std = b.copy()
+b_std = b_std.loc[:, ~b_std.columns.duplicated(keep='first')]
+b_tx_cols = [col for col in b_std.columns if col.endswith('transcriptomics')]
+b_std[b_tx_cols] = StandardScaler().fit_transform(b_std[b_tx_cols])
+b_std.index = 'OV' + b_std.index
+
+
+
+
+file2=pd.read_csv("tidy_stringdb_homosapiens_250.txt", sep='\t') 
+data=file2[file2['combined_score'] > 800]
+data= data.drop_duplicates()
+data = data[~data[['p1', 'p2']].apply(frozenset, axis=1).duplicated()]
+
+
+
+
+
+
+
+
+
+class protein_data_filtered(object):
+    def __init__(self, cptac_df=None, filtered_data=None):
+        if (cptac_df.empty == True):
+            print('data not available')
+        else:
+            self.df = cptac_df
+            self.df2 =cptac_df
+            self.data_f = filtered_data
+            self.data_r = filtered_data
+            self.all_proteomics = [re.sub('_proteomics', "", protein) for protein in self.df.columns if
+                               protein.endswith('_proteomics')]
+
+            self.all_transcriptomics = [re.sub('_transcriptomics', "", transcript) for transcript in self.df.columns if
+                                    transcript.endswith('_transcriptomics')]
+            
+            self.shared_proteins = [protein for protein in self.all_proteomics if protein in self.all_transcriptomics]
+
+            self.transciptomics_df=self.df2[self.df2.columns[self.df2.columns.to_series().str.contains('_transcriptomics')]]
+            self.proteomics_df=self.df2[self.df2.columns[self.df2.columns.to_series().str.contains('_proteomics')]]
+            
+            
+            self.data_f = self.data_f [self.data_f ['p1'].isin(self.all_proteomics)]
+            self.data_r = self.data_r [self.data_r ['p2'].isin(self.all_proteomics)]
+            self.dfs = [group for _, group in self.data_f.groupby('p1')]
+            self.dfs2 = [group for _, group in self.data_f.groupby('p2')]
+            
+            self.transciptomics_df = self.transciptomics_df.rename(columns=lambda x: re.sub('_transcriptomics', "",x))
+            self.proteomics_df = self.proteomics_df.rename(columns=lambda x: re.sub('_proteomics', "",x))   
+            
+            
+            self.transciptomics_df = self.transciptomics_df.loc[:,~self.transciptomics_df.columns.duplicated(keep='first')] 
+            self.proteomics_df = self.proteomics_df.loc[:,~self.proteomics_df.columns.duplicated(keep='first')]
+                # ----------------------- Getters -----------------------
+    def get_protiens(self):
+        return self.all_proteomics
+    
+    def get_transcritomics(self):
+        return self.all_transcriptomics
+    
+    def get_shared_protein(self):
+        return self.shared_proteins
+
+    
+    def get_transcriptomics_df(self):
+        return self.transciptomics_df
+    
+    def get_proteomics_df(self):
+        return self.proteomics_df
+    
+    def get_grouped_df1(self):
+        return self.dfs
+    
+    
+    def get_grouped_df2(self):
+        return self.dfs2
+    
+
+    
+    def get_multiple_protien_data_filtered1(self,protein,list_of_transcriptomics):
+        self.x_df=self.transciptomics_df
+        self.y_df=self.proteomics_df[protein]
+        self.xy_df=pd.concat([self.x_df,self.y_df],axis=1,join='inner').dropna()
+        self.xy_df=self.xy_df.loc[:, self.xy_df.columns.isin(list_of_transcriptomics)] 
+        return self.xy_df
+    
+    
+    
+    
+class learning_data_feature_selected_protien_data(protein_data_filtered):
+    def __init__(self, protein_data_filtered_,s_protein,list_of_transcs):
+        self.xy_df=protein_data_filtered_.get_multiple_protien_data_filtered1(s_protein,list_of_transcs)
+        self.x = self.xy_df.iloc[:, :-1]  # .values
+        self.y = self.xy_df.iloc[:, -1]  
+        
+    
+
+    
+    def test_train(self):
+        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(self.x, self.y, test_size=0.2, random_state=2)
+        return self.x_train, self.x_test, self.y_train, self.y_test 
+    
+    def LinearRegression(self):
+        x_train, x_test, y_train, y_test = self.test_train()
+        linear = LinearRegression(n_jobs=-1)
+        linear.fit(x_train, y_train)
+        return linear
+
+    def LassoRegression(self):
+        x_train, x_test, y_train, y_test = self.test_train()
+        lasso = Lasso()
+        lasso.fit(x_train, y_train)
+        return lasso
+    
+    def RandomForest(self):
+        x_train, x_test, y_train, y_test = self.test_train()
+        forest = RandomForestRegressor(n_estimators=1000,criterion='mse',max_depth=10,random_state=1,n_jobs=-1)
+        forest.fit(x_train, y_train)
+        return forest
+  
+    def run_model(self):
+        x_train, x_test, y_train, y_test = self.test_train()
+        model = []
+        model_names = []
+
+        regr1 = self.LinearRegression()
+        model.append(regr1)
+        model_names.append('Linear Regression')
+    
+        regr2 = self.LassoRegression()
+        model.append(regr2)
+        model_names.append('lasso_regression')
+        
+        regr3 = self.RandomForest()
+        model.append(regr3)
+        model_names.append('random_forest_regression')
+    
+        return model, model_names
+
+    
+    def results_test(self):
+        x_train, x_test, y_train, y_test = self.test_train()
+        model, model_names=self.run_model()
+        rmse_scores = dict()
+        training_scores = []
+        test_scores = []
+        r2_scores = dict()
+        training_scores_r2 = []
+        test_scores_r2 = []
+        
+        for regr, regr_name in zip(model, model_names):
+            y_train_preds = regr.predict(x_train)4e
+            y_test_preds = regr.predict(x_test)
+ 
+            train_score = round(np.sqrt(mean_squared_error(y_train, y_train_preds)/ (np.max(y_train) - np.min(y_train))),4)
+            test_score = round(np.sqrt(mean_squared_error(y_test, y_test_preds)/ (np.max(y_test) - np.min(y_test))),4)
+            training_scores.append(train_score)
+            test_scores.append(test_score)
+            rmse_scores[regr_name] = test_score
+ 
+            train_score_r2 = r2_score(y_train, y_train_preds)
+            test_score_r2 = r2_score(y_test, y_test_preds)
+            training_scores_r2.append(train_score_r2)
+            test_scores_r2.append(test_score_r2)
+            r2_scores[regr_name] = test_score_r2
+            
+            
+        return r2_scores,rmse_scores
+    
+    
+    
+
+from tqdm import tqdm
+selected_protien_results=[]
+for i in tqdm(range(len(protein_data_filtered(b_std,data).get_grouped_df1()))):
+    y_protein=protein_data_filtered(b_std,data).get_grouped_df1()[i].p1.unique()[0] 
+    list_of_tr=list(protein_data_filtered(b_std,data).get_grouped_df1()[1].p2)
+    rr=learning_data_feature_selected_protien_data(protein_data_filtered(b_std,data),y_protein,list_of_tr).results_test()
+    selected_protien_results.append(rr)
+
+
+import csv
+
+csv_columns = ['lasso_regression', 'random_forest_regression', 'Linear Regression']
+
+csv_file = "single_protein_data.csv"
+try:
+    with open(csv_file, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+        writer.writeheader()
+        for data in single_protien_results:
+            writer.writerow(data)
+except IOError:
+    print("I/O error")
+
+
+proteins=[]
+for i in tqdm(protein_data(b_std).get_shared_protein()):
+    proteins.append(i)
+
+
+aa = pd.read_csv("single_protein_data.csv")  
+aa["proteins"] = proteins
+aa.to_csv("single_protein.csv", sep='\t')
