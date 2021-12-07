@@ -1,6 +1,6 @@
-TUMORS = [8]
-METHODS = ['elastic', 'forest', 'linreg', 'boosting']
-FEATURES = ['single', 'string', 'corum', 'all']
+TUMORS = [5]
+METHODS = ['forest', ] #['elastic', 'forest', 'linreg' , 'boosting']
+FEATURES = ['all'] # ['single', 'string', 'corum', 'stringhi'] # , 'all']
 
 rule all:
     input: expand('out2/tumor{tumor}_{method}_{feature}.p', tumor=TUMORS, method=METHODS, feature=FEATURES)

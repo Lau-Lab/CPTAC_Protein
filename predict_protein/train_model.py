@@ -75,7 +75,7 @@ class LearnCPTAC(object):
     def included_features(self, value):
         """
         Set features
-        :param value:     single, all, string, or corum
+        :param value:     single, all, string, stringhi, or corum
         :return:
         """
         self._features = value
@@ -96,20 +96,33 @@ class LearnCPTAC(object):
        # self.included_features = tx_to_include
        # self.train_method = train_method
 
-        learning_results = []
 
-        for i, protein in enumerate(tqdm.tqdm(self.shared_proteins,
-                                              desc=f'Running {self._method} model with {self._features} transcripts')):
-            tqdm.tqdm.write(f'Doing {i}: {protein}')
 
-            res = self.learn_one_protein(protein, n_threads=n_threads)
+        # TODO: 2021-11-17 trying to parallelize this. Not sure if it is ok to simply let the function read the
+        # class or whether we need to wrap it a partial function
 
-            if res:
-                learning_results.append(res)
-                corr = res['metrics'].corr_test.values
-                r2 = res['metrics'].r2_test.values
-                tqdm.tqdm.write(f'corr: {corr}, r2: {r2}')
+        # learning_results = []
+        # for i, protein in enumerate(tqdm.tqdm(self.shared_proteins,
+        #                                       desc=f'Running {self._method} model with {self._features} transcripts')):
+        #     tqdm.tqdm.write(f'Doing {i}: {protein}')
+        #
+        #     res = self.learn_one_protein(protein, n_threads=n_threads)
+        #
+        #     if res:
+        #         learning_results.append(res)
+        #         corr = res['metrics'].corr_test.values
+        #         r2 = res['metrics'].r2_test.values
+        #         tqdm.tqdm.write(f'corr: {corr}, r2: {r2}')
 
+        loop_ = self.shared_proteins
+
+        from concurrent import futures
+        with futures.ThreadPoolExecutor(max_workers=n_threads) as ex:
+            res = list(tqdm.tqdm(ex.map(self.learn_one_protein, loop_),
+                       total=len(loop_),
+                       desc=f'Running {self._method} model with {self._features} transcripts'))
+
+        learning_results = [r for r in res if r is not None]
         return learning_results
 
     def get_train_test(self,
@@ -141,6 +154,13 @@ class LearnCPTAC(object):
         elif self._features == "string":
             string_interactors = self.stringdb.find_interactor(protein_to_do,
                                                                combined_score=200,
+                                                               max_proteins=1000,
+                                                               )
+            proteins_to_include = [p for p in string_interactors if p in self.shared_proteins]
+
+        elif self._features == "stringhi":
+            string_interactors = self.stringdb.find_interactor(protein_to_do,
+                                                               combined_score=800,
                                                                max_proteins=1000,
                                                                )
             proteins_to_include = [p for p in string_interactors if p in self.shared_proteins]
@@ -221,51 +241,53 @@ class LearnCPTAC(object):
             return None
 
         if self._method == 'linreg':
-            vreg = LinearRegression(n_jobs=n_threads)
+            vreg = LinearRegression(n_jobs=-1)
 
         elif self._method == 'voting':
             # Train model
             elastic = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.9, 0.95],
                                    cv=5,
                                    fit_intercept=False,
-                                   n_jobs=n_threads,
+                                   n_jobs=4,
                                    tol=1e-3,
                                    max_iter=2000,
                                    random_state=2,
                                    )
 
             # Shallow Forest was 100 estimators 5 depth. Deep is 1000 estimators 10 depth.
-            forest = RandomForestRegressor(n_estimators=1000,
+            forest = RandomForestRegressor(n_estimators=500,
                                            criterion='squared_error',
-                                           max_depth=10,
+                                           max_depth=4,
                                            random_state=2,
-                                           n_jobs=n_threads)
+                                           # oob_score=True,
+                                           n_jobs=-1)
 
             vreg = VotingRegressor(estimators=[('en', elastic), ('rf', forest), ])
 
         elif self._method == 'forest':
-            vreg = RandomForestRegressor(n_estimators=100,
-                                         criterion='absolute_error',
-                                         max_depth=5,
+            vreg = RandomForestRegressor(n_estimators=500,
+                                         criterion='squared_error',
+                                         max_depth=4,
                                          random_state=2,
-                                         n_jobs=n_threads)
+                                         # oob_score=True,
+                                         n_jobs=-1)
 
         elif self._method == 'elastic':
             vreg = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.9, 0.95],
                                 cv=5,
                                 fit_intercept=False,
-                                n_jobs=n_threads,
+                                n_jobs=-1,
                                 tol=1e-3,
                                 max_iter=2000,
                                 random_state=2,
                                 )
 
         elif self._method == 'boosting':
-            vreg = GradientBoostingRegressor(n_estimators=200,
+            vreg = GradientBoostingRegressor(n_estimators=1000,
                                              max_depth=4,
                                              subsample=0.8,
                                              min_samples_split=5,
-                                             learning_rate=0.1,
+                                             learning_rate=0.04,
                                              random_state=2,
                                              loss="huber", )
 

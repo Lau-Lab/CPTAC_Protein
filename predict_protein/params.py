@@ -5,4 +5,4 @@
 #
 # Model training
 #
-min_proteins = 20  # Minimum number of protein observations to attempt to train model
+min_proteins = 50  # Minimum number of protein observations to attempt to train model
