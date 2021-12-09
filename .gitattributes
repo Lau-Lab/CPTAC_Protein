@@ -1,0 +1,4 @@
+data/corum filter=lfs diff=lfs merge=lfs -text
+data/string filter=lfs diff=lfs merge=lfs -text
+data/corum/tidy_corum_homosapiens.txt filter=lfs diff=lfs merge=lfs -text
+data/string/tidy_stringdb_homosapiens.txt filter=lfs diff=lfs merge=lfs -text

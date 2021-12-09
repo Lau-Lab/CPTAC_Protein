@@ -15,11 +15,11 @@ class GetProtein(object):
 
         try:
             import_path = '.'
-            self.df = pd.read_csv(os.path.join(import_path, 'data/string/tidy_stringdb_homosapiens_250.txt'),
+            self.df = pd.read_csv(os.path.join(import_path, 'data/string/tidy_stringdb_homosapiens.txt'),
                                   sep='\t')
         except FileNotFoundError:
             import_path = '..'
-            self.df = pd.read_csv(os.path.join(import_path, 'data/string/tidy_stringdb_homosapiens_250.txt'),
+            self.df = pd.read_csv(os.path.join(import_path, 'data/string/tidy_stringdb_homosapiens.txt'),
                                  sep='\t')
 
         self.df = self.df.sort_values('combined_score')
