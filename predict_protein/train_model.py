@@ -145,29 +145,50 @@ class LearnCPTAC(object):
             return None
 
         # Decide how many proteins to use:
-        if self._features == "single":
+        if self._features == 'single':
             proteins_to_include = [protein_to_do]
 
-        elif self._features == "all":
+        elif self._features == 'all':
             proteins_to_include = self.shared_proteins
 
-        elif self._features == "string":
+        elif self._features == 'string':
             string_interactors = self.stringdb.find_interactor(protein_to_do,
                                                                combined_score=200,
                                                                max_proteins=1000,
                                                                )
             proteins_to_include = [p for p in string_interactors if p in self.shared_proteins]
 
-        elif self._features == "stringhi":
+        elif self._features == 'stringhi':
             string_interactors = self.stringdb.find_interactor(protein_to_do,
                                                                combined_score=800,
                                                                max_proteins=1000,
                                                                )
             proteins_to_include = [p for p in string_interactors if p in self.shared_proteins]
 
-        elif self._features == "corum":
+        elif self._features == 'corum':
             corum_interactors = self.corumdb.find_cosubunits(protein_to_do)
             proteins_to_include = [p for p in corum_interactors if p in self.shared_proteins]
+
+        # this combines features from corum + e3 ubiquitin ligases
+        elif self._features == 'corumplus':
+
+            try:
+                import_path = '.'
+                ub_ligase = pd.read_csv(os.path.join(import_path, 'data',
+                                                     'ubiquitin_ligases',
+                                                     '20211220_uniprot_human_ubiquitin_ligases.csv'),
+                                         sep='\t')
+            except FileNotFoundError:
+                import_path = '..'
+                ub_ligase = pd.read_csv(os.path.join(import_path, 'data',
+                                                      'ubiquitin_ligases',
+                                                      '20211220_uniprot_human_ubiquitin_ligases.csv'),
+                                         sep='\t')
+
+            ub_ligase = ub_ligase['Gene Name'].to_list()
+            corum_interactors = self.corumdb.find_cosubunits(protein_to_do)
+            corum_plus = list(set(ub_ligase + corum_interactors))
+            proteins_to_include = [p for p in corum_plus if p in self.shared_proteins]
 
         else:
             raise Exception('Invalid features')

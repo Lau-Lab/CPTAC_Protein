@@ -59,7 +59,7 @@ def main():
 
     parser.add_argument('-f', '--features',
                         type=str,
-                        choices=['single', 'all', 'string', 'stringhi', 'corum'],
+                        choices=['single', 'all', 'string', 'stringhi', 'corum', 'corumplus'],
                         help='which transcripts to use for prediction',
                         default='single',
                         )
