@@ -1,5 +1,5 @@
-TUMORS = [8]  # [2,3,4,5]
-METHODS = ['elastic', ]  #['elastic', 'forest', 'linreg' , 'boosting']
+TUMORS = [5]  # [2,3,4,5]
+METHODS = ['forest', ]  #['elastic', 'forest', 'linreg' , 'boosting']
 FEATURES = ['corumplus']  #['single', 'string', 'corum', 'stringhi' , 'corumplus', 'all']
 
 rule all:
