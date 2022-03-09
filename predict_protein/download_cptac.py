@@ -52,7 +52,7 @@ def download_cptac(n_tumors: int = 2,
 
     lu_rna = lu.get_transcriptomics()
     lu_pro = lu.get_proteomics()
-    e = br.join_omics_to_omics('transcriptomics', 'proteomics')
+    e = lu.join_omics_to_omics('transcriptomics', 'proteomics')
     e.columns = e.columns.droplevel(1)
 
     cc_rna = cc.get_transcriptomics()

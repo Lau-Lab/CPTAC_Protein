@@ -46,7 +46,7 @@ class GetProtein(object):
         interactors = interactors.sort_values('combined_score', ascending=False).p2
 
         # 2021-11-13 We need to remove redundant interactors.
-        interactors = list(set(interactors))[:max_proteins]
+        interactors = list(set(interactors[:max_proteins])) # list(set(interactors))[:max_proteins]
 
         # Always return self
         return [bait] + interactors
