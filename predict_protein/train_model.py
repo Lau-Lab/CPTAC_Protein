@@ -96,8 +96,6 @@ class LearnCPTAC(object):
        # self.included_features = tx_to_include
        # self.train_method = train_method
 
-
-
         # TODO: 2021-11-17 trying to parallelize this. Not sure if it is ok to simply let the function read the
         # class or whether we need to wrap it a partial function
 
@@ -203,6 +201,14 @@ class LearnCPTAC(object):
         # create transcript dataframe with the appropriate features
         x_df = self.df[[tx + '_transcriptomics' for tx in proteins_to_include]]
 
+        # 2022-03-09 drop transcript columns with only nan
+        x_df = x_df.dropna(axis=1, how='all')
+
+        # skip proteins where there are insufficient features prior to impute
+        if x_df.shape[1] == 0:
+            tqdm.tqdm.write('Not enough features. Skipping protein.')
+            return None
+
         # simple impute for missing values
         # TODO: use knn for better performance.
         x_impute = SimpleImputer(missing_values=np.nan, strategy='median').fit_transform(x_df)
@@ -219,7 +225,7 @@ class LearnCPTAC(object):
 
         x_impute_var_df = x_impute_df.iloc[:, np.where(vt.variances_ > self.var_threshold)[0]]
 
-        # skip proteins where there are insufficient features
+        # skip proteins where there are insufficient features after low variance removal
         if x_impute_var_df.shape[1] == 0:
             tqdm.tqdm.write('Not enough features. Skipping protein.')
             return None
