@@ -10,6 +10,7 @@ import tqdm
 import numpy as np
 import os
 import datetime
+import xgboost as xgb
 
 from sklearn.impute import SimpleImputer
 from sklearn.feature_selection import VarianceThreshold
@@ -202,7 +203,7 @@ class LearnCPTAC(object):
         x_df = self.df[[tx + '_transcriptomics' for tx in proteins_to_include]]
 
         # 2022-03-09 drop transcript columns with only nan
-        x_df = x_df.dropna(axis=1, how='all')
+        x_df = x_df.dropna(axis=1, how='all').copy()
 
         # skip proteins where there are insufficient features prior to impute
         if x_df.shape[1] == 0:
@@ -311,10 +312,10 @@ class LearnCPTAC(object):
 
         elif self._method == 'boosting':
             vreg = GradientBoostingRegressor(n_estimators=1000,
-                                             max_depth=4,
-                                             subsample=0.8,
+                                             max_depth=3,
+                                             subsample=0.5,
                                              min_samples_split=5,
-                                             learning_rate=0.04,
+                                             learning_rate=0.1,
                                              random_state=2,
                                              loss="huber", )
 
