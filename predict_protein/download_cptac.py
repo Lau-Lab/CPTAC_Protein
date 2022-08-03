@@ -123,7 +123,7 @@ def download_cptac(n_tumors: int = 2,
     g_std[g_tx_cols] = np.log2(g_std[g_tx_cols])
     g_std[np.isinf(g_std)] = np.nan
     g_std[g_tx_cols] = RobustScaler().fit_transform(g_std[g_tx_cols])
-    g_std.index = 'CC' + g_std.index
+    g_std.index = 'GB' + g_std.index
 
     h_std = h.copy()
     h_std = h_std.loc[:, ~h_std.columns.duplicated(keep='first')]
@@ -136,5 +136,5 @@ def download_cptac(n_tumors: int = 2,
     i_std[i_tx_cols] = RobustScaler().fit_transform(i_std[i_tx_cols])
     i_std.index = 'HN' + i_std.index
 
-    return [b_std, d_std, a_std, c_std, e_std, f_std, g_std, h_std, i_std, ][:n_tumors]
+    return [[b_std, d_std, a_std, c_std, e_std, f_std, g_std, h_std, i_std, ][n_tumors]] # [b_std, d_std, a_std, c_std, e_std, f_std, g_std, h_std, i_std, ][:n_tumors]
 
