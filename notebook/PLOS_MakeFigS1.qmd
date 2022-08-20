@@ -1,0 +1,124 @@
+---
+title: "Figure S1"
+format: 
+  html:
+    fig-width: 8
+    fig-height: 6
+  pdf:
+    fig-width: 7
+    fig-height: 5
+
+editor: visual
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+
+library(tidyverse)
+library(magrittr)
+
+```
+
+## Figure 1
+
+Genewise results
+
+```{r fig.width=7}
+#| label: plots1
+#| warning: false
+#| echo: false
+#| fig.width: 7
+#| fig.height: 14
+#| 
+
+
+df_all <- data.frame()
+for( tumor in paste0('tumor', 2:8)){
+    for (method in c('forest', 'elastic', 'linreg')){
+        for (feature in c('single', 'corum', 'string', 'stringhi', 'all')){
+          
+            fname <- paste0(tumor, '_' , method , '_' , feature)
+            fpath <- file.path("01_ExportModelResults_Output", "out3", paste0("01_ExportModelResults_", fname, ".csv"))
+            rf <- readr::read_csv(fpath, show_col_types=F)
+            rf$tumor <- tumor
+            rf$method <- method
+            rf$feature <- feature
+            df_all <- dplyr::bind_rows(df_all, rf)
+
+        }
+    }
+}
+
+
+# Pretty naming
+df_all <- df_all %>% dplyr::left_join(data.frame(feature=c('single', 'corum', 'stringhi', 'string', 'all'),
+                                                             featurename=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome')))
+
+df_all <- df_all %>% dplyr::left_join(data.frame(tumor=paste0('tumor', 2:8),
+                                                 tumorname=paste0("CPTAC_", 2:8)))
+
+# Get median number of obvservations
+df_all <- df_all %>% 
+  dplyr::group_by(tumor, method, feature) %>% 
+  dplyr::mutate(median_obs = median(num_obs, na.rm=T),
+                median_r2 = median(r2_test, na.rm=T),
+                median_nrmse = median(nrmse, na.rm=T),
+                ) %>% 
+  dplyr::ungroup()
+
+# Reorder factors
+df_all$method <- factor(df_all$method, levels=c('linreg', 'elastic', 'forest'), labels=c("Linear Regression", "Elastic Net", "Random Forest"))
+df_all$featurename <- factor(df_all$featurename, levels=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome'))
+
+
+g <- ggplot(data=df_all, aes(x=tumorname, 
+                             y=r2_test, 
+                             fill=median_obs)
+            ) 
+
+g <- g + geom_boxplot(size=0.1, 
+                      outlier.size=0,
+                      outlier.stroke=0,
+                      notch=F,
+                      width=0.25)  
+g <- g + geom_text(data = df_all %>% dplyr::distinct(tumorname, method, featurename, median_r2, median_obs), aes(y=median_r2, label=round(median_r2, 3)), size=3, angle=90, vjust=1.7)
+g <- g + facet_grid(method~ featurename)
+
+g <- g + ggthemes::theme_few()
+g <- g + theme(aspect.ratio=1, 
+               legend.position='bottom',
+               axis.text.x=element_text(angle=90))
+g <- g + coord_cartesian(ylim=c(-.25,1)) + scale_y_continuous(breaks=c(-0.25, 0, 0.25, 0.5, 0.75, 1))
+g <- g + ggplot2::scale_fill_viridis_c(begin=0.1, end=0.8) # + geom_text(aes(label=round(median(corr_test), 3)), size=2, angle=90, vjust=1.5)
+g <- g + ggtitle("Test set R2 across feature sets") + xlab("Data sets") + ylab("Test set R2 (predicted vs. empirical)") + guides(fill=guide_legend(title="Median number of total observations"))
+
+g2 <- ggplot(data=df_all, aes(x=tumorname, 
+                             y=nrmse, 
+                             fill=median_obs)
+            ) 
+
+g2 <- g2 + geom_boxplot(size=0.1, 
+                      outlier.size=0,
+                      outlier.stroke=0,
+                      notch=F,
+                      width=0.25)  
+g2<- g2 + geom_text(data = df_all %>% dplyr::distinct(tumorname, method, featurename, median_nrmse, median_obs), aes(y=median_nrmse, label=round(median_nrmse, 3)), size=3, angle=90, vjust=1.7)
+g2 <- g2 + facet_grid(method~ featurename)
+
+g2 <- g2 + ggthemes::theme_few()
+g2 <- g2 + theme(aspect.ratio=1, 
+               legend.position='bottom',
+               axis.text.x=element_text(angle=90))
+g2 <- g2 + coord_cartesian(ylim=c(-.25,1)) + scale_y_continuous(breaks=c(-0.25, 0, 0.25, 0.5, 0.75, 1))
+g2 <- g2 + ggplot2::scale_fill_viridis_c(begin=0.1, end=0.8) # + geom_text(aes(label=round(median(corr_test), 3)), size=2, angle=90, vjust=1.5)
+g2 <- g2 + ggtitle("Test set NRMSE across feature sets") + xlab("Data sets") + ylab("Test set NRMSE") + guides(fill=guide_legend(title="Median number of total observations"))
+
+gco <- ggpubr::ggarrange(g, g2, labels="AUTO", common.legend=T, align="hv", ncol=1)
+ggsave(plot=gco, filename="PLOS_FigS1.png", width=12, height=15)
+ggsave(plot=gco, filename="PLOS_FigS1.pdf", width=12, height=15, useDingbats=F)
+gco
+
+
+```
+

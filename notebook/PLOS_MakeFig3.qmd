@@ -1,0 +1,181 @@
+---
+title: "Figure 3"
+format: 
+  html:
+    fig-width: 8
+    fig-height: 6
+  pdf:
+    fig-width: 7
+    fig-height: 5
+
+editor: visual
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+
+library(tidyverse)
+library(ggpubr)
+library(magrittr)
+
+```
+
+## Figure 3
+
+Train and test set y vs. yhat for four proteins of interest, CMC1, PCCB, PSMG2, SMCR8.
+
+```{r fig.width=7}
+#| label: plot2
+#| warning: false
+#| echo: false
+#| fig.width: 7
+#| fig.height: 7
+#| 
+
+
+all_dfs <- data.frame()
+for(protein in c("CMC1", "PCCB", "PSMG2", "SMCR8", "MICU2", "PPP3R1")){
+        for(feature in c("single", "corum", "stringhi", "string", 'all')){
+                df <- readr::read_csv(paste0("07_ExportSingleProtein_Output/", protein, "_", feature, "_out3.csv"))
+                df$protein  <- protein
+                df$feature <- feature
+                all_dfs <- dplyr::bind_rows(all_dfs, df)
+        }
+}
+
+# Pretty naming
+all_dfs <- all_dfs %>% dplyr::left_join(data.frame(feature=c('single', 'corum', 'stringhi', 'string', 'all'),
+                                                 featurename=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome')))
+
+
+all_dfs$featurename <- factor(all_dfs$featurename, levels=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome'))
+all_dfs$set <- factor(all_dfs$set, levels = c("train", "test"), labels=c("Train set", "Test set"))
+
+
+
+# Helper to get the number of features and test set correlation
+getCorrValues <- function(protein){
+    stats_df <- data.frame()
+    
+        for(feature in c("single", "corum", "stringhi", "string", 'all')){
+                df <- readr::read_csv(paste0("01_ExportModelResults_Output/out3/01_ExportModelResults_tumor8_elastic_", feature, ".csv"))
+                df <- df %>% dplyr::filter(...1 == protein) %>% dplyr::select(corr_test, corr_train, num_features, num_obs)
+                df$ protein <- protein
+                df$ feature <- feature
+                
+                df <- tidyr::pivot_longer(df, cols=corr_test:corr_train, names_to="set", values_to="corr")
+                df$set <- gsub(".*_", "", df$set)
+                
+                stats_df <- dplyr::bind_rows(stats_df, df)
+        }
+
+    
+    # Pretty naming
+    stats_df <- stats_df %>% dplyr::left_join(data.frame(feature=c('single', 'corum', 'stringhi', 'string', 'all'),
+                                                     featurename=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome')))
+
+    stats_df$featurename <- factor(stats_df$featurename, levels=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome'))
+    stats_df$set <- factor(stats_df$set, levels = c("train", "test"),  labels=c("Train set", "Test set"))
+    
+    return (stats_df)
+}
+
+
+#Plot PCCB
+g <- ggplot(data=all_dfs %>% dplyr::filter(protein == 'PCCB'), aes(x=yhat, y=y, col=set)) 
+g <- g + geom_point(alpha=0.5) + harrypotter::scale_color_hp_d(option="Ravenclaw") + stat_smooth(method='lm')
+g <- g + facet_grid(set~featurename)
+g <- g + ggthemes::theme_few() + theme(aspect.ratio=0.619) 
+stats_df <- getCorrValues("PCCB")
+g <- g + geom_text(data=stats_df, y=4.2, x=-2.5, aes(label=paste0('r: ', round(corr, 3))), hjust=0)
+g <- g + geom_text(data=stats_df, y=5.3, x=-2.5, aes(label=paste0('num_features: ', round(num_features, 3))), hjust=0)
+g <- g + coord_cartesian(xlim=c(-2.5, 4), ylim=c(-4, 6))
+g <- g + ggtitle("PCCB") + xlab("Predicted Protein Level") + ylab("Actual Protein Level")
+
+# Plot CMC1
+g2 <- ggplot(data=all_dfs %>% dplyr::filter(protein == 'CMC1'), aes(x=yhat, y=y, col=set)) 
+g2 <- g2 + geom_point(alpha=0.5) + harrypotter::scale_color_hp_d(option="Ravenclaw") + stat_smooth(method='lm')
+g2 <- g2 + facet_grid(set~featurename)
+g2 <- g2 + ggthemes::theme_few() + theme(aspect.ratio=0.619)
+stats_df <- getCorrValues("CMC1")
+g2 <- g2 + geom_text(data=stats_df, y=4.2, x=-2.5, aes(label=paste0('r: ', round(corr, 3))), hjust=0)
+g2 <- g2 + geom_text(data=stats_df, y=5.3, x=-2.5, aes(label=paste0('num_features: ', round(num_features, 3))), hjust=0)
+g2 <- g2 + coord_cartesian(xlim=c(-2.5, 4), ylim=c(-4, 6))
+g2 <- g2 + ggtitle("CMC1") + xlab("Predicted Protein Level") + ylab("Actual Protein Level")
+
+#Plot PSMG2
+g3 <- ggplot(data=all_dfs %>% dplyr::filter(protein == 'PSMG2'), aes(x=yhat, y=y, col=set)) 
+g3 <- g3 + geom_point(alpha=0.5) + harrypotter::scale_color_hp_d(option="Ravenclaw") + stat_smooth(method='lm')
+g3 <- g3 + facet_grid(set~featurename)
+g3 <- g3 + ggthemes::theme_few() + theme(aspect.ratio=0.619) 
+g3 <- g3 + coord_cartesian(xlim=c(-2.5, 4), ylim=c(-4, 6))
+g3 <- g3 + ggtitle("PSMG2") + xlab("Predicted Protein Level") + ylab("Actual Protein Level")
+stats_df <- getCorrValues("PSMG2")
+g3 <- g3 + geom_text(data=stats_df, y=4.2, x=-2.5, aes(label=paste0('r: ', round(corr, 3))), hjust=0)
+g3 <- g3 + geom_text(data=stats_df, y=5.3, x=-2.5, aes(label=paste0('num_features: ', round(num_features, 3))), hjust=0)
+
+# Plot SMCR8
+g4 <- ggplot(data=all_dfs %>% dplyr::filter(protein == 'SMCR8'), aes(x=yhat, y=y, col=set)) 
+g4 <- g4 + geom_point(alpha=0.5) + harrypotter::scale_color_hp_d(option="Ravenclaw") + stat_smooth(method='lm')
+g4 <- g4 + facet_grid(set~featurename)
+g4 <- g4 + ggthemes::theme_few() + theme(aspect.ratio=0.619)
+stats_df <- getCorrValues("SMCR8")
+g4 <- g4 + geom_text(data=stats_df, y=4.2, x=-2.5, aes(label=paste0('r: ', round(corr, 3))), hjust=0)
+g4 <- g4 + geom_text(data=stats_df, y=5.3, x=-2.5, aes(label=paste0('num_features: ', round(num_features, 3))), hjust=0)
+g4 <- g4 + coord_cartesian(xlim=c(-2.5, 4), ylim=c(-4, 6))
+g4 <- g4 + ggtitle("SMCR8") + xlab("Predicted Protein Level") + ylab("Actual Protein Level")
+
+gco <- ggarrange(g, g2, g3, g4, ncol=1, align='hv', labels="AUTO", common.legend=T)
+gco
+
+ggsave(plot=gco, filename="PLOS_Fig3.pdf", width=12, height=16, useDingbats=F)
+ggsave(plot=gco, filename="PLOS_Fig3.png", width=12, height=16)
+
+```
+## Figure S4
+
+Train and test set y vs. yhat for two more proteins of interest: MICU2, PPP3R1
+
+```{r fig.width=7}
+#| label: plotS4
+#| warning: false
+#| echo: false
+#| fig.width: 7
+#| fig.height: 7
+#| 
+
+
+
+#Plot MICU2
+g5 <- ggplot(data=all_dfs %>% dplyr::filter(protein == 'MICU2'), aes(x=yhat, y=y, col=set)) 
+g5 <- g5 + geom_point(alpha=0.5) + harrypotter::scale_color_hp_d(option="Ravenclaw") + stat_smooth(method='lm')
+g5 <- g5 + facet_grid(set~featurename)
+g5 <- g5 + ggthemes::theme_few() + theme(aspect.ratio=0.619) 
+g5 <- g5 + coord_cartesian(xlim=c(-2.5, 4), ylim=c(-4, 6))
+g5 <- g5 + ggtitle("MICU2") + xlab("Predicted Protein Level") + ylab("Actual Protein Level")
+stats_df <- getCorrValues("MICU2")
+g5 <- g5 + geom_text(data=stats_df, y=4.2, x=-2.5, aes(label=paste0('r: ', round(corr, 3))), hjust=0)
+g5 <- g5 + geom_text(data=stats_df, y=5.3, x=-2.5, aes(label=paste0('num_features: ', round(num_features, 3))), hjust=0)
+
+# Plot PPP3R1
+g6 <- ggplot(data=all_dfs %>% dplyr::filter(protein == 'PPP3R1'), aes(x=yhat, y=y, col=set)) 
+g6 <- g6 + geom_point(alpha=0.5) + harrypotter::scale_color_hp_d(option="Ravenclaw") + stat_smooth(method='lm')
+g6 <- g6 + facet_grid(set~featurename)
+g6 <- g6 + ggthemes::theme_few() + theme(aspect.ratio=0.619)
+stats_df <- getCorrValues("PPP3R1")
+g6 <- g6 + geom_text(data=stats_df, y=4.2, x=-2.5, aes(label=paste0('r: ', round(corr, 3))), hjust=0)
+g6 <- g6 + geom_text(data=stats_df, y=5.3, x=-2.5, aes(label=paste0('num_features: ', round(num_features, 3))), hjust=0)
+g6 <- g6 + coord_cartesian(xlim=c(-2.5, 4), ylim=c(-4, 6))
+g6 <- g6 + ggtitle("PPP3R1") + xlab("Predicted Protein Level") + ylab("Actual Protein Level")
+
+
+gco <- ggarrange(g5, g6, ncol=1, align='hv', labels="AUTO", common.legend=T)
+gco
+
+ggsave(plot=gco, filename="PLOS_FigS4.pdf", width=12, height=8, useDingbats=F)
+ggsave(plot=gco, filename="PLOS_FigS4.png", width=12, height=8)
+
+```
+
+

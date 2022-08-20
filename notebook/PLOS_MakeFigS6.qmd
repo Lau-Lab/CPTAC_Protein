@@ -1,0 +1,99 @@
+---
+title: "Figure S6"
+format: 
+  html:
+    fig-width: 8
+    fig-height: 6
+  pdf:
+    fig-width: 7
+    fig-height: 5
+
+editor: visual
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+
+library(tidyverse)
+library(magrittr)
+
+```
+
+## Figure S6
+
+Use SHAP to assess feature importance in more complex models
+
+```{python fig.width=7}
+#| label: plot4
+#| warning: false
+#| echo: false
+#| fig.width: 7
+#| fig.height: 7
+
+
+import shap
+import pickle
+import shap
+import pandas as pd
+from predict_protein import download_cptac_original_order, select_features, train_model, utils
+import matplotlib.pyplot as plt
+import numpy as np
+
+model_loc = 'out3'
+
+#%% Load CPTAC data
+
+cptac_list = download_cptac_original_order.download_cptac(n_tumors=8)
+tumor_df = pd.concat(cptac_list)
+tm = train_model.LearnCPTAC(tumor_df)
+
+#%% Load the trained model, get the x/y data frames again and apply the model to train
+
+def get_model(tm_obj, model_loc, model, protein_todo):
+
+    with open(model_loc, 'rb') as f:
+        model_results = pickle.load(f)
+
+    protein_model  = [result['model'] for result in model_results if result['metrics'].index[0] == protein_todo][0]
+
+    # Get features and then do train test split again
+    tm_obj.included_features = model
+    print(tm_obj.included_features)
+    x_train, x_test, y_train, y_test = tm_obj.get_train_test(protein_to_do=protein_todo)
+
+    # Output a pandas data frame with y (actual mass spec protein level) and y_hat (predicted from transcript(s))
+    train_df = pd.DataFrame({'y': y_train, 'yhat': protein_model.predict(x_train[protein_model.feature_names_in_]), 'set': 'train'})
+    test_df = pd.DataFrame({'y': y_test, 'yhat': protein_model.predict(x_test[protein_model.feature_names_in_]), 'set': 'test'})
+
+    return protein_model, x_test # pd.concat([train_df, test_df])
+
+
+#%% Get CMC1 and PCCB for single, corum, and string, then output.
+for model in ['corum', ]: # 'single', 'corum', 'stringhi', 'string'
+    for protein in ['CMC1', 'PCCB', 'PSMG2', 'SMCR8', 'MICU2', 'PPP3R1']:
+        for method in ['forest', 'boosting']: #['elastic', 'forest', 'boosting']:
+            m, X = get_model(tm_obj=tm,
+                                 model_loc=f'{model_loc}/tumor8_{method}_{model}.p',
+                                 model=model,
+                                 protein_todo=protein,
+                            )
+            # Reorder the X data frame
+            X = X[m.feature_names_in_]
+            #%% SHAP
+            X100 = shap.utils.sample(X, 100)
+            explainer = shap.Explainer(m.predict, X100) #, max_evals=1000)
+            shap_values = explainer(X)
+
+            #%%# Plot SHAP
+            shap.plots.beeswarm(shap_values, max_display=20, show=False)
+            plt.tight_layout()
+            plt.savefig(f'08_SHAPFeatureImportance_Output/{model}_{method}/{protein}_R1.pdf')
+            plt.close()
+            shap.summary_plot(shap_values, X, plot_type="bar", show=False)
+            plt.tight_layout()
+            plt.tight_layout()
+            plt.savefig(f'08_SHAPFeatureImportance_Output/{model}_{method}/{protein}_bar_R1.pdf')
+            plt.close()
+
+```

@@ -1,0 +1,92 @@
+---
+title: "Figure 21"
+format: 
+  html:
+    fig-width: 8
+    fig-height: 6
+  pdf:
+    fig-width: 7
+    fig-height: 5
+
+editor: visual
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+
+library(tidyverse)
+library(magrittr)
+library(ggpubr)
+library(ReactomePA)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+
+```
+
+## Figure 2
+
+Enriched processes in poor and good predictors in single feature models.
+
+```{r fig.width=8, fig.height=6}
+#| label: plot_fig2
+#| warning: false
+#| echo: false
+#| fig.width: 8
+#| fig.height: 6
+
+
+genewise_df_lr_8 <- readr::read_csv("01_ExportModelResults_Output/out3/01_ExportModelResults_tumor8_elastic_single.csv")
+
+genewise_df_lr_8$Entrez <- mapIds(org.Hs.eg.db, keys=genewise_df_lr_8$`...1`, keytype="SYMBOL", column="ENTREZID")
+
+geneList <- genewise_df_lr_8 %>% dplyr::arrange(desc(corr_test)) %>% dplyr::pull(corr_test, name=Entrez) 
+good <-  names(geneList[geneList >= 0.6])
+poor <- names(geneList[geneList <= 0.3])
+
+ego <- enrichGO(gene          = good,
+                universe      = names(geneList),
+                OrgDb         = org.Hs.eg.db,
+                ont           = "CC",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.01,
+                qvalueCutoff  = 0.01,
+                readable      = TRUE)
+
+pgo <- enrichGO(gene          = poor,
+                universe      = names(geneList),
+                OrgDb         = org.Hs.eg.db,
+                ont           = "CC",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.01,
+                qvalueCutoff  = 0.01,
+                readable      = TRUE)
+
+
+
+ego2 <- enrichplot::pairwise_termsim(ego)
+p1 <- enrichplot::treeplot(ego2, showCategory=50, fontsize=3, nCluster=9, offset=1.7, offset_tiplab=2.2, label_format = 15, cex_category=0.5) + theme(aspect.ratio=1.2, legend.position="bottom")
+
+pgo2 <- enrichplot::pairwise_termsim(pgo)
+p2 <- enrichplot::treeplot(pgo2, showCategory=50, fontsize=3, nCluster=9, offset=1.7, offset_tiplab=2, label_format = 15, cex_category=0.5)  + theme(aspect.ratio=1.2, legend.position="bottom")
+
+pco <- ggpubr::ggarrange(p1, p2, labels="AUTO", common.legend=T, align="hv")
+pco
+
+ggsave(plot=pco, filename="PLOS_Fig2.pdf", width=14, height=10, useDingbats=F)
+ggsave(plot=pco, filename="PLOS_Fig2.png", width=14, height=10)
+
+
+```
+
+
+Comp
+```{r}
+# Performance gain
+
+genewise_df_lr_8 <- readr::read_csv("01_ExportModelResults_Output/out3/01_ExportModelResults_tumor8_elastic_corum.csv")
+genewise_df_si_8 <- readr::read_csv("01_ExportModelResults_Output/out3/01_ExportModelResults_tumor8_elastic_single.csv")
+
+
+```
+

@@ -1,0 +1,91 @@
+---
+title: "Figure S3"
+format: 
+  html:
+    fig-width: 8
+    fig-height: 6
+  pdf:
+    fig-width: 7
+    fig-height: 5
+
+editor: visual
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+
+library(tidyverse)
+library(magrittr)
+library(ggpubr)
+library(ReactomePA)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+
+```
+
+## Supplemental Figure S3
+
+Comparison of number of interactors vs. predictive performance increase in STRING
+
+```{r fig.width=8, fig.height=6}
+#| label: plot_figs4
+#| warning: false
+#| echo: false
+#| fig.width: 8
+#| fig.height: 6
+
+genewise_df_lr_8 <- readr::read_csv("01_ExportModelResults_Output/out3/01_ExportModelResults_tumor8_elastic_single.csv")
+genewise_df_st_8 <- readr::read_csv("01_ExportModelResults_Output/out3/01_ExportModelResults_tumor8_elastic_string.csv")
+genewise_df_co_8 <- readr::read_csv("01_ExportModelResults_Output/out3/01_ExportModelResults_tumor8_elastic_corum.csv")
+
+genewise_comparison <- genewise_df_st_8 %>% dplyr::select(gn=...1, en_corr_test=corr_test, num_features, num_obs) %>% dplyr::left_join(genewise_df_lr_8 %>% dplyr::select(gn=...1, lr_corr_test=corr_test))
+genewise_comparison <- genewise_comparison %>% dplyr::mutate(diff = en_corr_test - lr_corr_test)
+genewise_comparison <- genewise_comparison %>% dplyr::filter(num_features > 1)        
+        
+g_test <- cor.test(genewise_comparison$diff, genewise_comparison$num_features)
+
+g <-ggplot(data=genewise_comparison, aes(y=diff, x=num_features))
+g <- g + stat_bin_2d(binwidth=c(12.5, 0.025)) + stat_smooth(method='lm') + coord_cartesian(ylim=c(-1, 1))
+g <- g + ggthemes::theme_few() + theme(aspect.ratio=1) + scale_fill_continuous(type = "viridis")
+g <- g + xlab("Number of Transcript Features for Gene") + ylab("Increase in Test Set Correlation")
+g <- g + ggtitle("STRING 200 vs. Self", paste0("cor: ", round(g_test$estimate, 4), " p: ", signif(g_test$p.value, 3)))
+
+genewise_comparison_10 <- genewise_comparison %>% dplyr::filter(num_features >= 10)
+g_test <- cor.test(genewise_comparison_10$diff, genewise_comparison_10$num_features)
+
+g2 <-ggplot(data=genewise_comparison_10, aes(y=diff, x=num_features))
+g2 <- g2 + stat_bin_2d(binwidth=c(12.5, 0.025)) + stat_smooth(method='lm') + coord_cartesian(ylim=c(-1, 1))
+g2 <- g2 + ggthemes::theme_few() + theme(aspect.ratio=1) + scale_fill_continuous(type = "viridis")
+g2 <- g2 + xlab("Number of Transcript Features for Gene") + ylab("Increase in Test Set Correlation") 
+g2 <- g2 + ggtitle("STRING 200 vs. Self, >= 10 Interactors", paste0("cor: ", round(g_test$estimate, 4), " p: ", signif(g_test$p.value, 3)))
+
+genewise_comparison <- genewise_df_co_8 %>% dplyr::select(gn=...1, en_corr_test=corr_test, num_features, num_obs) %>% dplyr::left_join(genewise_df_lr_8 %>% dplyr::select(gn=...1, lr_corr_test=corr_test))
+genewise_comparison <- genewise_comparison %>% dplyr::mutate(diff = en_corr_test - lr_corr_test)
+genewise_comparison <- genewise_comparison %>% dplyr::filter(num_features > 1)        
+        
+g_test <- cor.test(genewise_comparison$diff, genewise_comparison$num_features)
+
+g3 <-ggplot(data=genewise_comparison, aes(y=diff, x=num_features))
+g3 <- g3 + stat_bin_2d(binwidth=c(3.25, 0.025)) + stat_smooth(method='lm') + coord_cartesian(ylim=c(-1, 1))
+g3 <- g3 + ggthemes::theme_few() + theme(aspect.ratio=1) + scale_fill_continuous(type = "viridis")
+g3 <- g3 + xlab("Number of Transcript Features for Gene") + ylab("Increase in Test Set Correlation") 
+g3 <- g3 + ggtitle("CORUM vs. Self", paste0("cor: ", round(g_test$estimate, 4), " p: ", signif(g_test$p.value, 3)))
+
+genewise_comparison_10 <- genewise_comparison %>% dplyr::filter(num_features >= 10)
+g_test <- cor.test(genewise_comparison_10$diff, genewise_comparison_10$num_features)
+
+g4 <-ggplot(data=genewise_comparison_10, aes(y=diff, x=num_features))
+g4 <- g4 + stat_bin_2d(binwidth=c(3.25, 0.025)) + stat_smooth(method='lm') + coord_cartesian(ylim=c(-1, 1))
+g4 <- g4 + ggthemes::theme_few() + theme(aspect.ratio=1) + scale_fill_continuous(type = "viridis")
+g4 <- g4 + xlab("Number of Transcript Features for Gene") + ylab("Increase in Test Set Correlation")
+g4 <- g4 + ggtitle("CORUM vs. Self, >= 10 Interactors", paste0("cor: ", round(g_test$estimate, 4), " p: ", signif(g_test$p.value, 3)))
+
+gco <- ggpubr::ggarrange(g, g2, g3, g4, labels="AUTO", common.legend=T, align="hv")
+gco
+
+ggsave(plot=gco, filename="PLOS_FigS3.pdf", width=11, height=7, useDingbats=F)
+ggsave(plot=gco, filename="PLOS_FigS3.png", width=11, height=7)
+
+```
+

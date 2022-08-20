@@ -1,0 +1,108 @@
+---
+title: "Figure 4"
+format: 
+  html:
+    fig-width: 8
+    fig-height: 6
+  pdf:
+    fig-width: 7
+    fig-height: 5
+
+editor: visual
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+
+library(tidyverse)
+library(magrittr)
+
+```
+
+## Figure 4
+
+RNA and protein correlation for CMC1 and MT-CO1, and for PCCB and PCCA
+
+```{r fig.width=7}
+#| label: plot4
+#| warning: false
+#| echo: false
+#| fig.width: 7
+#| fig.height: 7
+
+
+makeRNAProteinScatter <- function(corfile, gene1, gene2){
+
+    
+    cor_df <- readr::read_csv(corfile)
+    colnames(cor_df) <- c("g1_p", "g1_t", "g2_p", "g2_t")
+    cor_res <- cor(cor_df, use="pairwise.complete.obs")
+    
+    g1 <- ggplot(data = cor_df %>% dplyr::select(g1_t, g1_p) %>% (function(i) i[complete.cases(i),]), aes(x=g1_t, y=g1_p)) + geom_point(col='steelblue', alpha=0.5) + stat_smooth(method="lm") + ggthemes::theme_few() + theme(aspect.ratio=1) + xlab(paste(gene1, "mRNA")) + ylab(paste(gene1, "Protein")) + annotate(geom = 'label', label = paste("r:", round(cor_res["g1_t", "g1_p"], 3)), x = -Inf, y = Inf, hjust = 0, vjust = 1,  label.padding = unit(0.5, "lines"))
+    g2 <- ggplot(data = cor_df %>% dplyr::select(g2_t, g2_p) %>% (function(i) i[complete.cases(i),]), aes(x=g2_t, y=g2_p)) + geom_point(col='steelblue', alpha=0.5) + stat_smooth(method="lm") + ggthemes::theme_few() + theme(aspect.ratio=1) + xlab(paste(gene2, "mRNA")) + ylab(paste(gene2, "Protein")) + annotate(geom = 'label', label = paste("r:", round(cor_res["g2_t", "g2_p"], 3)), x = -Inf, y = Inf, hjust = 0, vjust = 1,  label.padding = unit(0.5, "lines"))
+    g3 <- ggplot(data = cor_df %>% dplyr::select(g1_t, g2_t) %>% (function(i) i[complete.cases(i),]), aes(x=g1_t, y=g2_t)) + geom_point(col='steelblue', alpha=0.5) + stat_smooth(method="lm") + ggthemes::theme_few() + theme(aspect.ratio=1) + xlab(paste(gene1, "mRNA")) + ylab(paste(gene2, "mRNA")) + annotate(geom = 'label', label = paste("r:", round(cor_res["g1_t", "g2_t"], 3)), x = -Inf, y = Inf, hjust = 0, vjust = 1,  label.padding = unit(0.5, "lines"))
+    g4 <- ggplot(data = cor_df %>% dplyr::select(g1_p, g2_p) %>% (function(i) i[complete.cases(i),]), aes(x=g1_p, y=g2_p)) + geom_point(col='steelblue', alpha=0.5) + stat_smooth(method="lm") + ggthemes::theme_few() + theme(aspect.ratio=1) + xlab(paste(gene1, "Protein")) + ylab(paste(gene2, "Protein")) + annotate(geom = 'label', label = paste("r:", round(cor_res["g1_p", "g2_p"], 3)), x = -Inf, y = Inf, hjust = 0, vjust = 1,  label.padding = unit(0.5, "lines"))
+    g5 <- ggplot(data = cor_df %>% dplyr::select(g2_p, g1_t) %>% (function(i) i[complete.cases(i),]), aes(y=g2_p, x=g1_t)) + geom_point(col='steelblue', alpha=0.5) + stat_smooth(method="lm") + ggthemes::theme_few() + theme(aspect.ratio=1) + xlab(paste(gene2, "Protein")) + ylab(paste(gene1, "mRNA")) + annotate(geom = 'label', label = paste("r:", round(cor_res["g2_p", "g1_t"], 3)), x = -Inf, y = Inf, hjust = 0, vjust = 1,  label.padding = unit(0.5, "lines"))
+    g6 <- ggplot(data = cor_df %>% dplyr::select(g1_p, g2_t) %>% (function(i) i[complete.cases(i),]), aes(y=g1_p, x=g2_t)) + geom_point(col='steelblue', alpha=0.5) + stat_smooth(method="lm") + ggthemes::theme_few() + theme(aspect.ratio=1) + xlab(paste(gene1, "Protein")) + ylab(paste(gene2, "mRNA")) + annotate(geom = 'label', label = paste("r:", round(cor_res["g1_p", "g2_t"], 3)), x = -Inf, y = Inf, hjust = 0, vjust = 1,  label.padding = unit(0.5, "lines"))
+    
+    gc <- ggpubr::ggarrange(g1, g2, g3, g4, g5, g6, align='hv')
+
+return(gc)
+}
+
+gc1 <- makeRNAProteinScatter("06_PlotRNAProteinCorrelations_Output/CMC1_MT-CO1_out3.csv", gene1="CMC1", gene2="MT-CO1")
+
+gc2 <- makeRNAProteinScatter("06_PlotRNAProteinCorrelations_Output/PCCB_PCCA_out3.csv", gene1="PCCB", gene2="PCCA")
+
+
+gcomb <- ggarrange(gc2, gc1, ncol=1, labels="AUTO", common.legend=T, align="hv")
+gcomb 
+
+ggsave(plot=gcomb, filename="PLOS_Fig4.pdf", width=10, height=12, useDingbats=F)
+
+
+```
+
+
+
+For Figure 5,  plot out PSMG2 vs PSMG1, and SMCR8 vs. C9orf72
+```{r fig.width=7}
+#| label: plot5
+#| warning: false
+#| echo: false
+#| fig.width: 7
+#| fig.height: 7
+
+gc1 <- makeRNAProteinScatter("06_PlotRNAProteinCorrelations_Output/PSMG2_PSMG1_out3.csv", gene1="PSMG2", gene2="PSMG1")
+
+gc2 <- makeRNAProteinScatter("06_PlotRNAProteinCorrelations_Output/SMCR8_C9orf72.csv", gene1="SMCR8", gene2="C9orf72")
+
+gcomb <- ggarrange(gc1, gc2, ncol=1, labels="AUTO", common.legend=T, align="hv")
+gcomb 
+
+ggsave(plot=gcomb, filename="PLOS_Fig5.pdf", width=10, height=12, useDingbats=F)
+
+
+```
+
+For Figure S5,  plot out PSMG2 vs PSMG1, and SMCR8 vs. C9orf72
+```{r fig.width=7}
+#| label: plotS5
+#| warning: false
+#| echo: false
+#| fig.width: 7
+#| fig.height: 7
+
+gc1 <- makeRNAProteinScatter("06_PlotRNAProteinCorrelations_Output/MICU2_MCU_out3.csv", gene1="MICU2", gene2="MCU")
+
+gc2 <- makeRNAProteinScatter("06_PlotRNAProteinCorrelations_Output/PPP3R1_PPP3CA_out3.csv", gene1="PPP3R1", gene2="PPP3CA")
+
+gcomb <- ggarrange(gc1, gc2, ncol=1, labels="AUTO", common.legend=T, align="hv")
+gcomb 
+
+ggsave(plot=gcomb, filename="PLOS_FigS5.pdf", width=10, height=12, useDingbats=F)
+
+
+```
+
