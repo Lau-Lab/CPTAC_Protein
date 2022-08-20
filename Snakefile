@@ -1,13 +1,13 @@
 TUMORS = [8]  # [2,3,4,5]
-METHODS = ['boosting', ]  #['elastic', 'forest', 'linreg' , 'boosting']
-FEATURES = ['all',]  #['single', 'string', 'corum', 'stringhi' , 'corumplus', 'all']
+METHODS = ['forest',]  #['elastic', 'forest', 'linreg' , 'boosting']
+FEATURES = ['string', 'all' ]  #['single', 'string', 'corum', 'stringhi' , 'corumplus', 'all']
 
 rule all:
-    input: expand('out3/tumor{tumor}_{method}_{feature}.p', tumor=TUMORS, method=METHODS, feature=FEATURES)
+    input: expand('out5_descending/tumor{tumor}_{method}_{feature}.p', tumor=TUMORS, method=METHODS, feature=FEATURES)
 
 rule predict:
-    output: 'out3/tumor{tumor}_{method}_{feature}.p'
-    log: 'out3/tumor{tumor}_{method}_{feature}.log'
+    output: 'out5_descending/tumor{tumor}_{method}_{feature}.p'
+    log: 'out5_descending/tumor{tumor}_{method}_{feature}.log'
     threads: 4
     shell:
         'python -m predict_protein -n {wildcards.tumor} '

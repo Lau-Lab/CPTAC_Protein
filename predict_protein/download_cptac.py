@@ -136,5 +136,4 @@ def download_cptac(n_tumors: int = 2,
     i_std[i_tx_cols] = RobustScaler().fit_transform(i_std[i_tx_cols])
     i_std.index = 'HN' + i_std.index
 
-    return [[b_std, d_std, a_std, c_std, e_std, f_std, g_std, h_std, i_std, ][n_tumors]] # [b_std, d_std, a_std, c_std, e_std, f_std, g_std, h_std, i_std, ][:n_tumors]
-
+    return [h_std, f_std, e_std, g_std, a_std, d_std, b_std, c_std, ][:n_tumors]

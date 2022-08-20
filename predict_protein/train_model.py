@@ -315,9 +315,10 @@ class LearnCPTAC(object):
                                              max_depth=3,
                                              subsample=0.5,
                                              min_samples_split=5,
-                                             learning_rate=0.1,
+                                             learning_rate=0.025,
                                              random_state=2,
-                                             loss="huber", )
+                                             # loss="huber",
+                                             )
 
         else:
             raise Exception('Invalid method')
