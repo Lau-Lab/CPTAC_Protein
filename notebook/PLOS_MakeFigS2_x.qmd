@@ -1,5 +1,5 @@
 ---
-title: "Figure S2_x"
+title: "Figure S2X"
 format: 
   html:
     fig-width: 8
@@ -22,10 +22,37 @@ library(magrittr)
 
 ## Figure S2_x
 
-Genewise results
+Gradient Boosting
+
+```{r}
+---
+title: "Figure 1"
+format: 
+  html:
+    fig-width: 8
+    fig-height: 6
+  pdf:
+    fig-width: 7
+    fig-height: 5
+
+editor: visual
+---
+
+#| label: load-packages
+#| include: false
+
+library(tidyverse)
+library(magrittr)
+
+```
+
+## Figure 2X
+
+
+Gradient boosting results 
 
 ```{r fig.width=7}
-#| label: plotS3
+#| label: plot2
 #| warning: false
 #| echo: false
 #| fig.width: 7
@@ -34,12 +61,12 @@ Genewise results
 
 
 df_all <- data.frame()
-for( tumor in paste0('tumor', 8)){
-    for (method in c('elastic', 'forest')){
-        for (feature in c('single', 'corum', 'stringhi')){
+for( tumor in paste0('tumor', 2:8)){
+    for (method in c('boosting')){
+        for (feature in c('single', 'corum', 'string', 'stringhi', 'all')){
           
             fname <- paste0(tumor, '_' , method , '_' , feature)
-            fpath <- file.path("01_ExportModelResults_Output", "out5_descending", paste0("01_ExportModelResults_", fname, ".csv"))
+            fpath <- file.path("01_ExportModelResults_Output", "out3", paste0("01_ExportModelResults_", fname, ".csv"))
             if(file.exists(fpath)){
               rf <- readr::read_csv(fpath, show_col_types=F)
               rf$tumor <- tumor
@@ -54,23 +81,23 @@ for( tumor in paste0('tumor', 8)){
 
 
 # Pretty naming
-df_all <- df_all |> dplyr::left_join(data.frame(feature=c('single', 'corum', 'stringhi'),
-                                                 featurename=c('Single', 'CORUM', 'STRING 800')))
+df_all <- df_all %>% dplyr::left_join(data.frame(feature=c('single', 'corum', 'stringhi', 'string', 'all'),
+                                                 featurename=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome')))
 
-df_all <- df_all |> dplyr::left_join(data.frame(tumor=paste0('tumor', 1:8),
-                                                 tumorname=paste0("CPTAC_Descending_", 1:8)))
+df_all <- df_all %>% dplyr::left_join(data.frame(tumor=paste0('tumor', 2:8),
+                                                 tumorname=paste0("CPTAC_", 2:8)))
 
 
 # Get median number of observations
-df_all <- df_all |> 
-  dplyr::group_by(tumor, method, feature) |> 
+df_all <- df_all |>
+  dplyr::group_by(tumor, method, feature) |>
   dplyr::mutate(median_obs = median(num_obs, na.rm=T),
                 median_corr = median(corr_test, na.rm=T)) |>
   dplyr::ungroup()
 
 # Reorder factors
-df_all$method <- factor(df_all$method, levels=c('elastic', 'forest'), label=c('Elastic Net', 'Random Forest'))
-df_all$featurename <- factor(df_all$featurename, levels=c('Single', 'CORUM', 'STRING 800'))
+df_all$method <- factor(df_all$method, levels=c('boosting'), labels = c('Gradient Boosting'))
+df_all$featurename <- factor(df_all$featurename, levels=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome'))
 
 g <- ggplot(data=df_all, aes(x=tumorname, 
                              y=corr_test, 
@@ -94,7 +121,10 @@ g <- g + ggplot2::scale_fill_viridis_c(begin=0.1, end=0.8) # + geom_text(aes(lab
 g <- g + ggtitle("Test set correlation across feature sets") + xlab("Data sets") + ylab("Test set correlation (predicted vs. empirical)") + guides(fill=guide_legend(title="Median number of total observations"))
 g
 
-ggsave(plot=g, filename="PLOS_FigS2B.pdf", width=12, height=9, useDingbats=F)
+ggsave(plot=g, filename="PLOS_Fig2B.pdf", width=12, height=9, useDingbats=F)
+ggsave(plot=g, filename="PLOS_Fig2B.png", width=12, height=9)
+
 ```
+
 
 

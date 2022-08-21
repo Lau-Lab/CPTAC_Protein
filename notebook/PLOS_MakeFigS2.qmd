@@ -20,7 +20,7 @@ library(magrittr)
 
 ```
 
-## Figure S2
+## Figure S2A
 
 Revision data with individual tumor data sets
 
@@ -68,7 +68,7 @@ df_all <- df_all %>%
   dplyr::ungroup()
 
 # Reorder factors
-df_all$method <- factor(df_all$method, levels=c('linreg', 'elastic', 'forest'))
+df_all$method <- factor(df_all$method, levels=c('linreg', 'elastic', 'forest'), labels=c("Linear Regression", "Elastic Net", "Random Forest"))
 df_all$featurename <- factor(df_all$featurename, levels=c('Single', 'CORUM', 'STRING 800', 'STRING 200', 'Transcriptome'))
 
 g <- ggplot(data=df_all, aes(x=reorder(tumorname, median_corr), 
@@ -93,8 +93,89 @@ g <- g + ggplot2::scale_fill_viridis_c(begin=0.1, end=0.8) # + geom_text(aes(lab
 g <- g + ggtitle("Test set correlation across feature sets") + xlab("Data sets") + ylab("Test set correlation (predicted vs. empirical)") + guides(fill=guide_legend(title="Median number of total observations"))
 g
 
-ggsave(plot=g, filename="PLOS_FigS2.pdf", width=12, height=9, useDingbats=F)
-ggsave(plot=g, filename="PLOS_FigS2.png", width=12, height=9)
+
+ggsave(plot=g, filename="PLOS_FigS2A.png", width=12, height=9)
+ggsave(plot=g, filename="PLOS_FigS2A.pdf", width=12, height=9, useDingbats=F)
+
+```
+
+## Figure S2B
+
+Revision data with reordered tumor data sets
+
+```{r fig.width=7}
+#| label: plotS2B
+#| warning: false
+#| echo: false
+#| fig.width: 7
+#| fig.height: 7
+#| 
+
+
+df_all <- data.frame()
+for( tumor in paste0('tumor', 8)){
+    for (method in c('elastic', 'forest')){
+        for (feature in c('single', 'corum', 'stringhi', 'string')){
+          
+            fname <- paste0(tumor, '_' , method , '_' , feature)
+            fpath <- file.path("01_ExportModelResults_Output", "out5_descending", paste0("01_ExportModelResults_", fname, ".csv"))
+            if(file.exists(fpath)){
+              rf <- readr::read_csv(fpath, show_col_types=F)
+              rf$tumor <- tumor
+              rf$method <- method
+              rf$feature <- feature
+              df_all <- dplyr::bind_rows(df_all, rf)
+            }
+
+        }
+    }
+}
+
+
+# Pretty naming
+df_all <- df_all |> dplyr::left_join(data.frame(feature=c('single', 'corum', 'stringhi', 'string'),
+                                                 featurename=c('Single', 'CORUM', 'STRING 800', 'STRING 200')))
+
+df_all <- df_all |> dplyr::left_join(data.frame(tumor=paste0('tumor', 1:8),
+                                                 tumorname=paste0("CPTAC_Descending_", 1:8)))
+
+
+# Get median number of observations
+df_all <- df_all |> 
+  dplyr::group_by(tumor, method, feature) |> 
+  dplyr::mutate(median_obs = median(num_obs, na.rm=T),
+                median_corr = median(corr_test, na.rm=T)) |>
+  dplyr::ungroup()
+
+# Reorder factors
+df_all$method <- factor(df_all$method, levels=c('elastic', 'forest'), label=c('Elastic Net', 'Random Forest'))
+df_all$featurename <- factor(df_all$featurename, levels=c('Single', 'CORUM', 'STRING 800', 'STRING 200'))
+
+g2 <- ggplot(data=df_all, aes(x=method, 
+                             y=corr_test, 
+                             fill=median_obs)
+            ) 
+
+g2 <- g2 + geom_boxplot(size=0.1, 
+                      outlier.size=0,
+                      outlier.stroke=0,
+                      notch=T,
+                      width=0.25)  
+g2 <- g2 + geom_text(data = df_all %>% dplyr::distinct(tumorname, method, featurename, median_corr, median_obs), aes(y=median_corr, label=round(median_corr, 3)), size=3, angle=90, vjust=1.7)
+g2 <- g2 + facet_wrap(~ featurename)
+
+g2 <- g2 + ggthemes::theme_few()
+g2 <- g2 + theme(aspect.ratio=1, 
+               legend.position='bottom',
+               axis.text.x=element_text(angle=90))
+g2 <- g2 + coord_cartesian(ylim=c(-.25,1)) + scale_y_continuous(breaks=c(-0.25, 0, 0.25, 0.5, 0.75, 1))
+g2 <- g2 + ggplot2::scale_fill_viridis_c(begin=0.1, end=0.8) # + geom_text(aes(label=round(median(corr_test), 3)), size=2, angle=90, vjust=1.5)
+g2 <- g2 + ggtitle("Test set correlation across feature sets", "Data sets combined in descending order of performance") + xlab("Method") + ylab("Test set correlation (predicted vs. empirical)") + guides(fill=guide_legend(title="Median number of total observations"))
+g2
+
+ggsave(plot=g2, filename="PLOS_FigS2B.png", width=12, height=9)
+ggsave(plot=g2, filename="PLOS_FigS2B.pdf", width=12, height=9, useDingbats=F)
 
 
 ```
+

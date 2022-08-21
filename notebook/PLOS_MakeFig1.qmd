@@ -101,21 +101,5 @@ ggsave(plot=g, filename="PLOS_Fig1.png", width=12, height=9)
 
 
 
-```{r, fig.height=4}
-#| label: plot2
-#| warning: false
-#| echo: false
-#| eval: false
 
-# Read file
-metrics_df <- readr::read_csv("01_ExportModelResults_metrics_out3.csv")
-
-
-testdf <- metrics_df |> dplyr::filter(method=='forest', `Unnamed: 0` == '50%')
-
-fit_f <- lm(corr_test ~ num_obs + num_features, data=testdf)
-fit_o <- lm(corr_test ~ num_features, data=testdf)
-
-anova(fit_o, fit_f)
-```
 
