@@ -124,7 +124,8 @@ class protein_data(object):
             self.transciptomics_df = self.transciptomics_df.loc[:,~self.transciptomics_df.columns.duplicated(keep='first')] 
             self.proteomics_df = self.proteomics_df.loc[:,~self.proteomics_df.columns.duplicated(keep='first')]
                 # ----------------------- Getters -----------------------
-    def get_protiens(self):
+#AB 03.14.2023 fixing spelling  ie -> ei
+def get_proteins(self):
         return self.all_proteomics
     
     def get_transcritomics(self):
@@ -139,12 +140,14 @@ class protein_data(object):
     
     def get_proteomics_df(self):
         return self.proteomics_df
-    
-    def get_inividual_protien_data(self,single_protein):
+
+    #AB 03.07.2024 Fix spelling 
+    def get_inividual_protein_data(self,single_protein):
         self.each_protein_df= pd.concat([pd.DataFrame(self.transciptomics_df[single_protein]),pd.DataFrame(self.proteomics_df[single_protein])],axis=1).dropna()
         return self.each_protein_df
 
-    def get_multiple_protien_data(self,protein):
+#AB 03.07.2024 fix spelling
+    def get_multiple_protein_data(self,protein):
         self.x_df=self.transciptomics_df
         self.y_df=self.proteomics_df[protein]
         self.xy_df=pd.concat([self.x_df,self.y_df],axis=1,join='inner').dropna()
@@ -166,8 +169,8 @@ class protein_data(object):
 
 
 
-
-class learning_data_inividual_protien_data(protein_data):
+#AB 03.07.2024 fix spelling
+class learning_data_inividual_protein_data(protein_data):
     def __init__(self, protein_data_,single_protein):
         self.xy_df=protein_data_.get_inividual_protien_data(single_protein)
         self.x = self.xy_df.iloc[:, :-1]  # .values
@@ -255,13 +258,13 @@ class learning_data_inividual_protien_data(protein_data):
         self.y = self.xy_df.iloc[:, -1]  
 
    
-
+#AB: fix spelling 
 #for checking the results on single protein dats
-single_protien_results=[]
+single_protein_results=[]
 
 for i in protein_data(b_std).get_shared_protein():
-    rr=learning_data_inividual_protien_data(protein_data(b_std),i).results()
-    single_protien_results.append(rr)
+    rr=learning_data_inividual_protein_data(protein_data(b_std),i).results()
+    single_protein_results.append(rr)
     
 import matplotlib.pyplot as plt
 
@@ -272,7 +275,7 @@ ax = plt.axes()
 lin=[]
 las=[]
 ran=[]
-for fo in single_protien_results: 
+for fo in single_protein_results: 
      lin.append(fo['Linear Regression'])
      las.append(fo['lasso_regression'])
      ran.append(fo['random_forest_regression'])
@@ -281,7 +284,7 @@ plt.plot(lin,las,ran,np.arange(len(single_protien_results)) )
 plt.show()
 width=0.2
 
-x=np.arange(len(single_protien_results))
+x=np.arange(len(single_protein_results))
 fig, ax = plt.subplots()
 ax.bar(x-width/2, lin, width, color='b', label='Linear_Regression')
 ax.bar(x, las, width, color='g',label='Lasso_Regression')
@@ -334,7 +337,7 @@ for e in proteins:
 
 
 
-ss=protein_data(b_std).get_multiple_protien_data(pp)
+ss=protein_data(b_std).get_multiple_protein_data(pp)
 ld=list(dfs[0].p2)
 pp=dfs[0].p1.unique()[0]
 
@@ -346,20 +349,20 @@ for i in range(len(dfs)):
         print(dfs[i].p2)
         
         
-protein_data(b_std).get_multiple_protien_data(pp)       
+protein_data(b_std).get_multiple_protein_data(pp)       
 ss=ss.loc[:, ss.columns.isin(ld)]       
         
         
 pp=protein_data_filtered(b_std,data).get_grouped_df1()[1].p1.unique()[0] 
 ld=list(protein_data_filtered(b_std,data).get_grouped_df1()[1].p2)
-protein_data_filtered(b_std,data).get_multiple_protien_data_filtered1(pp,ld)
+protein_data_filtered(b_std,data).get_multiple_protein_data_filtered1(pp,ld)
 
 #for checking the results on single protein dats
-single_protien_results=[]
+single_protein_results=[]
 
 for i in tqdm(protein_data(b_std).get_shared_protein()):
-    rr=learning_data_inividual_protien_data(protein_data(b_std),i).results()
-    single_protien_results.append(rr)
+    rr=learning_data_inividual_protein_data(protein_data(b_std),i).results()
+    single_protein_results.append(rr)
 
 
 import csv
@@ -371,7 +374,7 @@ try:
     with open(csv_file, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
         writer.writeheader()
-        for data in single_protien_results:
+        for data in single_protein_results:
             writer.writerow(data)
 except IOError:
     print("I/O error")
