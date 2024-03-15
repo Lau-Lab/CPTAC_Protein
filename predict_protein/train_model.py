@@ -133,8 +133,16 @@ class LearnCPTAC(object):
         :return:  x_train, x_test, y_train, y_test
         """
 
-        y_df = self.df[[protein_to_do + '_proteomics']]
-        y_df = y_df.dropna(subset=[protein_to_do + '_proteomics'])
+        #y_df = self.df[[protein_to_do + '_proteomics']]
+                           #AB 03.15
+                           
+        #y_df = y_df.dropna(subset=[protein_to_do + '_proteomics'])
+        #AB: use a REGEX
+        regex_pattern = protein_to_do + '_proteomics$'
+        y_df = self.df.filter(regex=regex_pattern)
+        # After filtering, the column names in y_df will be exactly those that matched the regex,
+        # so you can safely call dropna() on the entire DataFrame without specifying a subset.
+        y_df = y_df.dropna()
 
         # skip proteins with fewer than 20 samples
         # 2021-11-12 this should be filtered at the protein step (y_df) rather than the
