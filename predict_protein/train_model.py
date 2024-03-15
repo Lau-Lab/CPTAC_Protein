@@ -139,7 +139,11 @@ class LearnCPTAC(object):
         # skip proteins with fewer than 20 samples
         # 2021-11-12 this should be filtered at the protein step (y_df) rather than the
         # transcript-protein joined set (xy_df). We will do a simple impute for the transcripts instead
-        if len(y_df) < params.min_proteins:
+
+        #AB 03.15.2024: we can either modify the script to import * from params script within protein_prediction or simply define it here
+        # Minimum number of protein observations to attempt to train mode
+        min_proteins = 50  
+        if len(y_df) < min_proteins:
             tqdm.tqdm.write('Not enough proteomics observations. Skipping protein.')
             return None
 
