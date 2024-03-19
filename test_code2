@@ -197,7 +197,9 @@ class learning_data_inividual_protein_data(protein_data):
     
     def RandomForest(self):
         x_train, x_test, y_train, y_test = self.test_train()
-        forest = RandomForestRegressor(n_estimators=1000,criterion='mse',max_depth=10,random_state=1,n_jobs=-1)
+        #In every instance in which the class RandomForest is defined we need to modify the criterion. mse is not an acceptable option.
+        #choice of:  {'poisson', 'friedman_mse', 'absolute_error', 'squared_error'}
+        forest = RandomForestRegressor(n_estimators=1000,criterion='squared_error',max_depth=10,random_state=1,n_jobs=-1)
         forest.fit(x_train, y_train)
         return forest
   
